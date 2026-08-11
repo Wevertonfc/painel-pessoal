@@ -43,5 +43,36 @@ O app está publicado automaticamente via GitHub Pages em:
 - Signup público desabilitado
 - A `service_role key` **nunca** deve aparecer no código
 
+## 🤖 Integração e Automação (n8n)
+
+Você pode inserir dados automaticamente no seu banco de dados usando o **n8n** (rodando local ou em servidor). Como o Supabase expõe uma API REST automática, você não precisa de nenhum código extra no painel.
+
+### 1. Inserir Transação Financeira via n8n (Exemplo)
+Crie um nó **HTTP Request** no n8n configurado da seguinte forma:
+
+* **Method:** `POST`
+* **URL:** `https://rcirkirowyxluskkxyim.supabase.co/rest/v1/transactions`
+* **Headers:**
+  * `apikey`: `SUA-ANON-PUBLIC-KEY`
+  * `Authorization`: `Bearer JWT-DO-SEU-USUARIO` (ou use a `service_role` key **apenas se o n8n for privado**, pois ela ignora o RLS e insere livremente em nome de qualquer ID).
+  * `Content-Type`: `application/json`
+  * `Prefer`: `return=representation`
+* **Body Parameters (JSON):**
+  ```json
+  {
+    "description": "PIX Recebido n8n",
+    "value": 150.00,
+    "type": "income",
+    "category": "Outros",
+    "date": "2026-08-11",
+    "user_id": "SEU-USER-UUID-DO-SUPABASE-AUTH"
+  }
+  ```
+
+### 2. Automações úteis para criar:
+1. **Extratos Bancários:** Disparar o n8n quando receber e-mails de comprovante bancário (ex: Gmail node) → Filtrar texto com IA (Node Ollama/OpenAI) → Gravar na tabela `transactions`.
+2. **Sincronizador de Calendário:** Google Calendar (Buscar eventos do dia) → n8n → Gravar na tabela `agenda_items` (com campo `date` de hoje).
+
 ## Licença
 Uso pessoal.
+

@@ -1029,3 +1029,60 @@ textarea.form-input {
         font-size: 0.8rem;
     }
 }
+
+/* ---- Chart Card Styles ---- */
+.chart-card {
+    max-width: 100%;
+    margin-bottom: var(--space-xl);
+}
+
+.chart-wrapper {
+    position: relative;
+    width: 100%;
+    max-height: 280px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: var(--space-md) 0;
+}
+
+#categoryChart {
+    max-width: 100% !important;
+    max-height: 260px !important;
+}
+
+/* ---- Month Input Styling ---- */
+input[type="month"].form-input {
+    color-scheme: dark;
+    cursor: pointer;
+}
+
+/* Responsive adjustment for filters control bar */
+@media (max-width: 600px) {
+    .control-bar {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: var(--space-sm) !important;
+    }
+    
+    .control-bar > div {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .control-bar #txFilters {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .control-bar #txFilters button {
+        flex: 1;
+        text-align: center;
+    }
+
+    .control-bar input[type="month"] {
+        flex: 1;
+    }
+}
+

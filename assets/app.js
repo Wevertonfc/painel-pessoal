@@ -15,8 +15,10 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser = null;
 let currentTab = 'financeiro';
 let transactionFilter = 'all';
+let transactionMonth = ''; // 'YYYY-MM' format
 let pendenciaFilter = 'all';
 let ideaTagFilter = 'all';
+let categoryChartInstance = null; // Store Chart.js instance
 
 // ---- DOM REFS ----
 const $ = (id) => document.getElementById(id);
@@ -205,34 +207,58 @@ async function loadAllData() {
 let transactions = [];
 
 async function loadTransactions() {
-    const { data, error } = await sb
-        .from('transactions')
-        .select('*')
-        .order('date', { ascending: false })
-        .order('created_at', { ascending: false });
+    try {
+        const { data, error } = await sb
+            .from('transactions')
+            .select('*')
+            .order('date', { ascending: false })
+            .order('created_at', { ascending: false });
 
-    if (error) {
-        console.error('Load transactions error:', error);
-        showToast('Erro ao carregar transações.', 'error');
-        return;
+        if (error) throw error;
+
+        transactions = data || [];
+        // Save to cache for offline access
+        localStorage.setItem('cached_transactions', JSON.stringify(transactions));
+    } catch (error) {
+        console.warn('Could not load transactions from Supabase, loading from cache:', error);
+        const cached = localStorage.getItem('cached_transactions');
+        if (cached) {
+            transactions = JSON.parse(cached);
+            showToast('Dados carregados offline.', 'info');
+        } else {
+            showToast('Erro ao carregar transações.', 'error');
+        }
     }
-    transactions = data || [];
+    
     renderTransactions();
     updateFinancialStats();
+}
+
+function getFilteredTransactions() {
+    return transactions.filter(t => {
+        // Filter by Month
+        if (transactionMonth) {
+            const txMonthStr = t.date.substring(0, 7); // Get 'YYYY-MM'
+            if (txMonthStr !== transactionMonth) return false;
+        }
+        // Filter by Type
+        if (transactionFilter === 'income' && t.type !== 'income') return false;
+        if (transactionFilter === 'expense' && t.type !== 'expense') return false;
+        return true;
+    });
 }
 
 function renderTransactions() {
     const list = $('transactionList');
     const empty = $('txEmpty');
 
-    let filtered = transactions;
-    if (transactionFilter === 'income') filtered = transactions.filter(t => t.type === 'income');
-    if (transactionFilter === 'expense') filtered = transactions.filter(t => t.type === 'expense');
+    const filtered = getFilteredTransactions();
 
     if (filtered.length === 0) {
         list.innerHTML = '';
         list.appendChild(empty);
         empty.style.display = '';
+        updateCategoryChart([]); // Clear chart
         return;
     }
     empty.style.display = 'none';
@@ -264,8 +290,10 @@ function renderTransactions() {
 }
 
 function updateFinancialStats() {
-    const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.value), 0);
-    const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.value), 0);
+    const filtered = getFilteredTransactions();
+    
+    const income = filtered.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.value), 0);
+    const expense = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.value), 0);
     const balance = income - expense;
 
     $('totalIncome').textContent = formatCurrency(income);
@@ -277,6 +305,122 @@ function updateFinancialStats() {
     if (balance > 0) balEl.classList.add('positive');
     else if (balance < 0) balEl.classList.add('negative');
     else balEl.classList.add('neutral');
+
+    // Update Chart
+    updateCategoryChart(filtered);
+}
+
+function updateCategoryChart(filteredTxs) {
+    const chartCard = $('chartCard');
+    const ctx = $('categoryChart').getContext('2d');
+
+    // Filter only expenses for category analysis
+    const expenses = filteredTxs.filter(t => t.type === 'expense');
+
+    if (expenses.length === 0) {
+        chartCard.style.display = 'none';
+        if (categoryChartInstance) {
+            categoryChartInstance.destroy();
+            categoryChartInstance = null;
+        }
+        return;
+    }
+
+    chartCard.style.display = '';
+
+    // Group expenses by category
+    const categoriesData = {};
+    expenses.forEach(t => {
+        const cat = t.category || 'Geral';
+        categoriesData[cat] = (categoriesData[cat] || 0) + Number(t.value);
+    });
+
+    const labels = Object.keys(categoriesData);
+    const data = Object.values(categoriesData);
+
+    const colors = [
+        '#6366f1', '#8b5cf6', '#a855f7', '#ec4899', '#f43f5e', 
+        '#f59e0b', '#10b981', '#06b6d4', '#3b82f6', '#6b7280'
+    ];
+
+    if (categoryChartInstance) {
+        categoryChartInstance.data.labels = labels;
+        categoryChartInstance.data.datasets[0].data = data;
+        categoryChartInstance.update();
+    } else {
+        categoryChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors.slice(0, labels.length),
+                    borderWidth: 2,
+                    borderColor: '#12121a',
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: '#f0f0f5',
+                            font: { family: 'Inter', size: 11 },
+                            boxWidth: 12,
+                            padding: 10
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) label += ': ';
+                                label += formatCurrency(context.raw);
+                                return label;
+                            }
+                        }
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+    }
+}
+
+function exportToCsv() {
+    const filteredTxs = getFilteredTransactions();
+    if (filteredTxs.length === 0) {
+        showToast('Nenhuma transação para exportar.', 'info');
+        return;
+    }
+
+    let csvContent = "\uFEFF"; // UTF-8 BOM
+    csvContent += "Data;Descrição;Valor;Tipo;Categoria\r\n";
+
+    filteredTxs.forEach(t => {
+        const row = [
+            formatDate(t.date),
+            t.description.replace(/;/g, ','),
+            t.value,
+            t.type === 'income' ? 'Receita' : 'Despesa',
+            t.category || 'Geral'
+        ].join(';');
+        csvContent += row + "\r\n";
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    const dateStr = transactionMonth ? `_${transactionMonth}` : '_completo';
+    link.setAttribute("download", `financeiro_painel${dateStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Exportação concluída!', 'success');
 }
 
 async function saveTransaction() {
@@ -801,7 +945,18 @@ function setupEventListeners() {
         chip.classList.add('active');
         transactionFilter = chip.dataset.filter;
         renderTransactions();
+        updateFinancialStats();
     });
+
+    // Month filter
+    $('txMonthFilter').addEventListener('change', (e) => {
+        transactionMonth = e.target.value; // 'YYYY-MM'
+        renderTransactions();
+        updateFinancialStats();
+    });
+
+    // Export CSV
+    $('exportCsvBtn').addEventListener('click', exportToCsv);
 
     // ---- Briefing: Agenda ----
     $('addAgendaBtn').addEventListener('click', addAgendaItem);
@@ -863,10 +1018,25 @@ function setupEventListeners() {
 }
 
 // ============================================================
+// PWA SERVICE WORKER REGISTRATION
+// ============================================================
+
+function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then((reg) => console.log('[PWA] Service worker registered successfully', reg.scope))
+                .catch((err) => console.error('[PWA] Service worker registration failed', err));
+        });
+    }
+}
+
+// ============================================================
 // INIT
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     checkSession();
+    registerServiceWorker();
 });

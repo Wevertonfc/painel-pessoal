@@ -6,7 +6,10 @@
     <meta name="description" content="Painel Pessoal — Financeiro, Agenda, Ideias e Checkpoint">
     <title>Painel Pessoal</title>
     <link rel="stylesheet" href="assets/style.css">
+    <link rel="manifest" href="manifest.json">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
+    <!-- Chart.js CDN for interactive charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <!-- Loading Overlay -->
@@ -145,11 +148,30 @@
                     </div>
                 </div>
 
-                <!-- Filter Chips -->
-                <div class="filter-chips" id="txFilters">
-                    <button class="filter-chip active" data-filter="all">Todas</button>
-                    <button class="filter-chip" data-filter="income">Receitas</button>
-                    <button class="filter-chip" data-filter="expense">Despesas</button>
+                <!-- Control Bar (Filters + Export) -->
+                <div class="control-bar" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-md); margin-bottom: var(--space-xl);">
+                    <div class="filter-chips" id="txFilters" style="margin-bottom: 0;">
+                        <button class="filter-chip active" data-filter="all">Todas</button>
+                        <button class="filter-chip" data-filter="income">Receitas</button>
+                        <button class="filter-chip" data-filter="expense">Despesas</button>
+                    </div>
+                    
+                    <div style="display: flex; gap: var(--space-sm); align-items: center;">
+                        <input type="month" id="txMonthFilter" class="form-input" style="padding: 0.4rem 0.8rem; width: auto; font-size: 0.85rem; height: 36px;">
+                        <button class="btn btn-secondary btn-sm" id="exportCsvBtn" title="Exportar para Excel/CSV" style="height: 36px; padding: 0 0.8rem;">
+                            📥 Exportar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Category Chart Card -->
+                <div class="card chart-card" id="chartCard" style="display: none; margin-bottom: var(--space-xl);">
+                    <h3 style="font-size: 0.95rem; font-weight: 600; margin-bottom: var(--space-md); color: var(--text-secondary); display: flex; align-items: center; gap: var(--space-sm);">
+                        📊 Distribuição de Gastos por Categoria
+                    </h3>
+                    <div class="chart-wrapper">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
                 </div>
 
                 <!-- Transaction List -->
