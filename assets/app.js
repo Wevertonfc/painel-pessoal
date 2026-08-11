@@ -9,7 +9,7 @@ const SUPABASE_URL = 'https://SEU-PROJETO.supabase.co';
 const SUPABASE_ANON_KEY = 'SUA-ANON-KEY-AQUI';
 
 // Inicializar cliente Supabase
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ---- STATE ----
 let currentUser = null;
@@ -102,7 +102,7 @@ async function handleLogin(e) {
     errorEl.style.display = 'none';
 
     try {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
         if (error) throw error;
         currentUser = data.user;
         showApp();
@@ -122,7 +122,7 @@ async function handleLogin(e) {
 
 async function handleLogout() {
     try {
-        await supabase.auth.signOut();
+        await sb.auth.signOut();
     } catch (e) {
         console.error('Logout error:', e);
     }
@@ -137,7 +137,7 @@ async function handleLogout() {
 async function checkSession() {
     showLoading();
     try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await sb.auth.getSession();
         if (session && session.user) {
             currentUser = session.user;
             showApp();
@@ -205,7 +205,7 @@ async function loadAllData() {
 let transactions = [];
 
 async function loadTransactions() {
-    const { data, error } = await supabase
+    const { data, error } = await sb
         .from('transactions')
         .select('*')
         .order('date', { ascending: false })
@@ -292,7 +292,7 @@ async function saveTransaction() {
     }
 
     showLoading();
-    const { error } = await supabase.from('transactions').insert({
+    const { error } = await sb.from('transactions').insert({
         description: desc,
         value: value,
         type: type,
@@ -321,7 +321,7 @@ async function saveTransaction() {
 async function deleteTransaction(id) {
     if (!confirm('Excluir esta transação?')) return;
     showLoading();
-    const { error } = await supabase.from('transactions').delete().eq('id', id);
+    const { error } = await sb.from('transactions').delete().eq('id', id);
     if (error) {
         showToast('Erro ao excluir.', 'error');
         hideLoading();
@@ -339,7 +339,7 @@ async function deleteTransaction(id) {
 let agendaItems = [];
 
 async function loadAgendaItems() {
-    const { data, error } = await supabase
+    const { data, error } = await sb
         .from('agenda_items')
         .select('*')
         .eq('date', todayISO())
@@ -396,7 +396,7 @@ async function addAgendaItem() {
     const text = $('agendaInput').value.trim();
     if (!text) return;
 
-    const { error } = await supabase.from('agenda_items').insert({
+    const { error } = await sb.from('agenda_items').insert({
         text: text,
         date: todayISO()
     });
@@ -415,7 +415,7 @@ async function toggleAgendaItem(id) {
     const item = agendaItems.find(i => i.id === id);
     if (!item) return;
 
-    const { error } = await supabase
+    const { error } = await sb
         .from('agenda_items')
         .update({ done: !item.done })
         .eq('id', id);
@@ -428,7 +428,7 @@ async function toggleAgendaItem(id) {
 }
 
 async function deleteAgendaItem(id) {
-    const { error } = await supabase.from('agenda_items').delete().eq('id', id);
+    const { error } = await sb.from('agenda_items').delete().eq('id', id);
     if (error) {
         showToast('Erro ao excluir.', 'error');
         return;
@@ -444,7 +444,7 @@ async function deleteAgendaItem(id) {
 let pendencias = [];
 
 async function loadPendencias() {
-    const { data, error } = await supabase
+    const { data, error } = await sb
         .from('pendencias')
         .select('*')
         .order('done', { ascending: true })
@@ -509,7 +509,7 @@ async function addPendencia() {
     const priority = $('pendenciaPriority').value;
     if (!text) return;
 
-    const { error } = await supabase.from('pendencias').insert({
+    const { error } = await sb.from('pendencias').insert({
         text: text,
         priority: priority
     });
@@ -528,7 +528,7 @@ async function togglePendencia(id) {
     const item = pendencias.find(p => p.id === id);
     if (!item) return;
 
-    const { error } = await supabase
+    const { error } = await sb
         .from('pendencias')
         .update({ done: !item.done })
         .eq('id', id);
@@ -541,7 +541,7 @@ async function togglePendencia(id) {
 }
 
 async function deletePendencia(id) {
-    const { error } = await supabase.from('pendencias').delete().eq('id', id);
+    const { error } = await sb.from('pendencias').delete().eq('id', id);
     if (error) {
         showToast('Erro ao excluir.', 'error');
         return;
@@ -557,7 +557,7 @@ async function deletePendencia(id) {
 let ideas = [];
 
 async function loadIdeas() {
-    const { data, error } = await supabase
+    const { data, error } = await sb
         .from('ideas')
         .select('*')
         .order('created_at', { ascending: false });
@@ -633,7 +633,7 @@ async function saveIdea() {
     }
 
     showLoading();
-    const { error } = await supabase.from('ideas').insert({ tag, text });
+    const { error } = await sb.from('ideas').insert({ tag, text });
 
     if (error) {
         showToast('Erro ao salvar ideia.', 'error');
@@ -651,7 +651,7 @@ async function saveIdea() {
 async function deleteIdea(id) {
     if (!confirm('Excluir esta ideia?')) return;
     showLoading();
-    const { error } = await supabase.from('ideas').delete().eq('id', id);
+    const { error } = await sb.from('ideas').delete().eq('id', id);
     if (error) {
         showToast('Erro ao excluir.', 'error');
         hideLoading();
@@ -669,7 +669,7 @@ async function deleteIdea(id) {
 let checkpoints = [];
 
 async function loadCheckpoints() {
-    const { data, error } = await supabase
+    const { data, error } = await sb
         .from('checkpoints')
         .select('*')
         .order('date', { ascending: false })
@@ -727,7 +727,7 @@ async function saveCheckpoint() {
     }
 
     showLoading();
-    const { error } = await supabase.from('checkpoints').insert({ date, mood, text });
+    const { error } = await sb.from('checkpoints').insert({ date, mood, text });
 
     if (error) {
         showToast('Erro ao salvar checkpoint.', 'error');
@@ -745,7 +745,7 @@ async function saveCheckpoint() {
 async function deleteCheckpoint(id) {
     if (!confirm('Excluir este checkpoint?')) return;
     showLoading();
-    const { error } = await supabase.from('checkpoints').delete().eq('id', id);
+    const { error } = await sb.from('checkpoints').delete().eq('id', id);
     if (error) {
         showToast('Erro ao excluir.', 'error');
         hideLoading();
@@ -851,7 +851,7 @@ function setupEventListeners() {
     $('saveCheckpoint').addEventListener('click', saveCheckpoint);
 
     // ---- Auth state change listener ----
-    supabase.auth.onAuthStateChange((event, session) => {
+    sb.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_OUT' || !session) {
             currentUser = null;
             loginScreen.style.display = '';
