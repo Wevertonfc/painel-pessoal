@@ -1,4 +1,4 @@
-const CACHE_NAME = 'painel-pessoal-v1';
+const CACHE_NAME = 'painel-pessoal-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

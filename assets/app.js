@@ -250,7 +250,7 @@ function getFilteredTransactions() {
 
 function renderTransactions() {
     const list = $('transactionList');
-    const empty = $('txEmpty');
+    const empty = getEmptyElement('txEmpty');
 
     const filtered = getFilteredTransactions();
 
@@ -499,7 +499,7 @@ async function loadAgendaItems() {
 
 function renderAgendaItems() {
     const list = $('agendaList');
-    const empty = $('agendaEmpty');
+    const empty = getEmptyElement('agendaEmpty');
 
     if (agendaItems.length === 0) {
         list.innerHTML = '';
@@ -604,7 +604,7 @@ async function loadPendencias() {
 
 function renderPendencias() {
     const list = $('pendenciaList');
-    const empty = $('pendenciaEmpty');
+    const empty = getEmptyElement('pendenciaEmpty');
 
     let filtered = pendencias;
     if (pendenciaFilter === 'pending') filtered = pendencias.filter(p => !p.done);
@@ -717,7 +717,7 @@ async function loadIdeas() {
 
 function renderIdeas() {
     const grid = $('ideasGrid');
-    const empty = $('ideasEmpty');
+    const empty = getEmptyElement('ideasEmpty');
 
     let filtered = ideas;
     if (ideaTagFilter !== 'all') filtered = ideas.filter(i => i.tag === ideaTagFilter);
@@ -829,7 +829,7 @@ async function loadCheckpoints() {
 
 function renderCheckpoints() {
     const list = $('checkpointList');
-    const empty = $('checkpointEmpty');
+    const empty = getEmptyElement('checkpointEmpty');
 
     if (checkpoints.length === 0) {
         list.innerHTML = '';
@@ -903,6 +903,14 @@ async function deleteCheckpoint(id) {
 // ============================================================
 // HELPERS
 // ============================================================
+
+const cachedEmptyElements = {};
+function getEmptyElement(id) {
+    if (!cachedEmptyElements[id]) {
+        cachedEmptyElements[id] = document.getElementById(id);
+    }
+    return cachedEmptyElements[id];
+}
 
 function escapeHtml(text) {
     if (!text) return '';
